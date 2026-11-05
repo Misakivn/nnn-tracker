@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>NNN Tracker</title>
+<meta name="description" content="Theo dõi thử thách 30 ngày tháng 11 — dùng cá nhân, dữ liệu lưu trên máy.">
+<meta name="theme-color" content="#0f1115">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#f6f5f2; --card:#ffffff; --ink:#1b1d22; --muted:#6b6f78; --line:#e4e2dc;
+  --ok:#1f9d6b; --ok-soft:#d9f2e7; --bad:#d6453d; --bad-soft:#fbe1df;
+  --accent:#3b5bdb; --accent-soft:#e3e8fc; --today:#f0a020;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1115; --card:#171a20; --ink:#eceef2; --muted:#9aa0ab; --line:#262a33;
+    --ok:#34c48b; --ok-soft:#173a2c; --bad:#ef6b63; --bad-soft:#3d1d1c;
+    --accent:#7d95ff; --accent-soft:#1f2747; --today:#f5b53d;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0f1115; --card:#171a20; --ink:#eceef2; --muted:#9aa0ab; --line:#262a33;
+  --ok:#34c48b; --ok-soft:#173a2c; --bad:#ef6b63; --bad-soft:#3d1d1c;
+  --accent:#7d95ff; --accent-soft:#1f2747; --today:#f5b53d;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:20px 16px 64px}
+header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px}
+h1{font-size:20px;margin:0;letter-spacing:-.01em}
+h1 small{display:block;font-size:13px;font-weight:400;color:var(--muted)}
+h2{font-size:15px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin-bottom:16px}
+.hero{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.ring{position:relative;width:132px;height:132px}
+.ring svg{transform:rotate(-90deg)}
+.ring .num{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ring .num b{font-size:38px;line-height:1;font-variant-numeric:tabular-nums}
+.ring .num span{font-size:12px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.stat{background:var(--bg);border-radius:10px;padding:10px 12px}
+.stat b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.checkin{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:10px 14px}
+button:hover{border-color:var(--muted)}
+button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn-ok{background:var(--ok);border-color:var(--ok);color:#fff;font-weight:600;flex:1;min-width:140px}
+.btn-bad{background:transparent;border-color:var(--bad);color:var(--bad);flex:1;min-width:140px}
+.btn-sos{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:6px 8px}
+.done-msg{padding:12px;border-radius:10px;font-weight:600}
+.done-msg.ok{background:var(--ok-soft);color:var(--ok)}
+.done-msg.bad{background:var(--bad-soft);color:var(--bad)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.dow{font-size:11px;color:var(--muted);text-align:center;padding-bottom:2px}
+.day{aspect-ratio:1;border-radius:9px;border:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:13px;font-variant-numeric:tabular-nums;padding:0;position:relative}
+.day.blank{visibility:hidden}
+.day.ok{background:var(--ok-soft);border-color:var(--ok);color:var(--ok);font-weight:600}
+.day.bad{background:var(--bad-soft);border-color:var(--bad);color:var(--bad);font-weight:600}
+.day.future{opacity:.45;cursor:default}
+.day.today{box-shadow:0 0 0 2px var(--today)}
+.day .note-dot{position:absolute;bottom:5px;width:4px;height:4px;border-radius:50%;background:currentColor}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-top:12px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+textarea{width:100%;min-height:80px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px;resize:vertical}
+label{font-size:13px;color:var(--muted);display:block;margin:10px 0 4px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+input[type=date]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.quote{font-style:italic;color:var(--muted);margin:0}
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);padding:20px;width:min(440px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+.breath{width:150px;height:150px;margin:18px auto;border-radius:50%;background:var(--accent-soft);border:2px solid var(--accent);display:flex;align-items:center;justify-content:center;font-weight:600;color:var(--accent);transition:transform 4s ease-in-out}
+.breath.in{transform:scale(1.25)}
+ul.tips{padding-left:18px;margin:8px 0}
+.log{list-style:none;padding:0;margin:0}
+.log li{border-top:1px solid var(--line);padding:8px 0;font-size:14px}
+.log li:first-child{border-top:0}
+.log .d{color:var(--muted);font-size:12px}
+.muted{color:var(--muted);font-size:13px}
+@media (max-width:480px){
+  .hero{grid-template-columns:1fr;justify-items:center}
+  .stats{width:100%}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>NNN Tracker<small id="sub">Thử thách 30 ngày</small></h1>
+    <div class="row">
+      <button class="btn-sos" id="sosBtn" title="Khi đang có cám dỗ">SOS</button>
+      <button class="ghost" id="themeBtn" aria-label="Đổi giao diện">◐</button>
+    </div>
+  </header>
+
+  <section class="card hero">
+    <div class="ring">
+      <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+        <circle cx="66" cy="66" r="58" fill="none" stroke="var(--line)" stroke-width="10"/>
+        <circle id="ringArc" cx="66" cy="66" r="58" fill="none" stroke="var(--ok)" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4" style="transition:stroke-dashoffset .6s"/>
+      </svg>
+      <div class="num"><b id="streak">0</b><span>ngày liên tiếp</span></div>
+    </div>
+    <div style="width:100%">
+      <div class="stats">
+        <div class="stat"><b id="sOk">0</b><span>ngày giữ vững</span></div>
+        <div class="stat"><b id="sBad">0</b><span>lần vấp ngã</span></div>
+        <div class="stat"><b id="sBest">0</b><span>chuỗi dài nhất</span></div>
+        <div class="stat"><b id="sLeft">0</b><span>ngày còn lại</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 id="todayTitle">Hôm nay</h2>
+    <div id="todayBox"></div>
+    <label for="urge">Mức độ cám dỗ hôm nay: <b id="urgeVal">0</b>/10</label>
+    <input type="range" id="urge" min="0" max="10" value="0">
+    <label for="note">Ghi chú</label>
+    <textarea id="note" placeholder="Hôm nay thế nào? Điều gì giúp bạn / điều gì là trigger?"></textarea>
+    <p class="muted" id="saved" aria-live="polite"></p>
+  </section>
+
+  <section class="card">
+    <h2>Lịch thử thách</h2>
+    <div class="grid" id="cal"></div>
+    <div class="legend">
+      <span><i style="background:var(--ok)"></i>Giữ vững</span>
+      <span><i style="background:var(--bad)"></i>Vấp ngã</span>
+      <span><i style="background:var(--line)"></i>Chưa ghi</span>
+      <span><i style="box-shadow:0 0 0 2px var(--today)"></i>Hôm nay</span>
+    </div>
+    <p class="muted" style="margin:10px 0 0">Bấm vào một ngày đã qua để sửa trạng thái.</p>
+  </section>
+
+  <section class="card">
+    <h2>Nhật ký</h2>
+    <ul class="log" id="log"></ul>
+  </section>
+
+  <section class="card">
+    <p class="quote" id="quote"></p>
+  </section>
+
+  <section class="card">
+    <h2>Cài đặt</h2>
+    <div class="row">
+      <label for="start" style="margin:0">Ngày bắt đầu</label>
+      <input type="date" id="start">
+      <label for="len" style="margin:0">Số ngày</label>
+      <input type="number" id="len" min="1" max="365" style="width:72px;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 8px">
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button id="exportBtn">Xuất dữ liệu</button>
+      <button id="importBtn">Nhập dữ liệu</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+      <button id="resetBtn" class="ghost" style="color:var(--bad)">Xoá hết</button>
+    </div>
+    <p class="muted">Dữ liệu chỉ lưu trong trình duyệt trên máy này. Thỉnh thoảng hãy “Xuất dữ liệu” để sao lưu.</p>
+  </section>
+</div>
+
+<dialog id="sos">
+  <h2>Bình tĩnh. Cơn thèm sẽ qua.</h2>
+  <p class="muted" style="margin:0">Hít thở theo vòng tròn trong 1 phút.</p>
+  <div class="breath" id="breath">Bắt đầu</div>
+  <p style="text-align:center;margin:0" class="muted" id="breathTimer"></p>
+  <ul class="tips" id="tips"></ul>
+  <div class="row" style="justify-content:flex-end">
+    <button id="sosClose">Tôi ổn rồi</button>
+  </div>
+</dialog>
+
+<dialog id="dayDlg">
+  <h2 id="dayDlgTitle"></h2>
+  <div class="checkin">
+    <button class="btn-ok" data-set="ok">Giữ vững</button>
+    <button class="btn-bad" data-set="bad">Vấp ngã</button>
+  </div>
+  <div class="row" style="justify-content:space-between;margin-top:14px">
+    <button class="ghost" data-set="clear">Xoá trạng thái</button>
+    <button data-set="close">Đóng</button>
+  </div>
+</dialog>
+
+<script>
+(function(){
+  const KEY = 'nnn-tracker-v1';
+  const QUOTES = [
+    'Kỷ luật là chọn điều bạn muốn nhất thay vì điều bạn muốn ngay bây giờ.',
+    'Mỗi ngày giữ vững là một phiếu bầu cho con người bạn muốn trở thành.',
+    'Cơn thèm giống như con sóng — nó dâng lên, rồi nó tan đi.',
+    'Bạn không cần hoàn hảo, chỉ cần không bỏ cuộc.',
+    'Năng lượng bạn giữ lại hôm nay là nhiên liệu cho mục tiêu ngày mai.',
+    'Vấp ngã không xoá đi những ngày bạn đã cố gắng. Đứng dậy và tiếp tục.',
+    'Hãy làm chủ tâm trí, đừng để tâm trí làm chủ bạn.',
+    'Thói quen tốt được xây từng ngày, không phải trong một đêm.'
+  ];
+  const TIPS = [
+    'Đứng dậy, rời khỏi phòng ngay bây giờ.',
+    'Tắm nước lạnh hoặc rửa mặt.',
+    'Làm 20 cái chống đẩy hoặc squat.',
+    'Đặt điện thoại xuống, ra ngoài đi bộ 10 phút.',
+    'Nhắn tin hoặc gọi cho một người bạn.',
+    'Uống một cốc nước lớn.',
+    'Viết ra lý do bạn bắt đầu thử thách này.',
+    'Mở sách, nghe podcast, hoặc làm một việc cần tập trung.'
+  ];
+
+  // ---------- storage ----------
+  function defaultState(){
+    const y = new Date().getFullYear();
+    return { start: y + '-11-01', length: 30, days: {}, theme: null };
+  }
+  function load(){
+    try{
+      const raw = localStorage.getItem(KEY);
+      if(!raw) return defaultState();
+      return Object.assign(defaultState(), JSON.parse(raw));
+    }catch(e){ return defaultState(); }
+  }
+  let state = load();
+  function save(){
+    try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+  }
+
+  // ---------- date helpers (local time) ----------
+  const pad = n => String(n).padStart(2,'0');
+  const iso = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  function parse(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+  function addDays(d, n){ const x = new Date(d); x.setDate(x.getDate()+n); return x; }
+  const todayIso = () => iso(new Date());
+  function challengeDates(){
+    const s = parse(state.start), out = [];
+    for(let i=0;i<state.length;i++) out.push(iso(addDays(s,i)));
+    return out;
+  }
+  const fmt = s => { const d = parse(s); return pad(d.getDate()) + '/' + pad(d.getMonth()+1); };
+  const DOW = ['CN','T2','T3','T4','T5','T6','T7'];
+
+  // ---------- stats ----------
+  function stats(){
+    const dates = challengeDates(), t = todayIso();
+    let ok=0, bad=0, best=0, run=0;
+    for(const d of dates){
+      if(d > t) break;
+      const st = state.days[d] && state.days[d].status;
+      if(st==='ok'){ ok++; run++; best=Math.max(best,run); }
+      else if(st==='bad'){ bad++; run=0; }
+      else if(d < t){ run=0; } // missed past day breaks streak
+    }
+    // current streak: count back from today (today unrecorded doesn't break it)
+    let streak=0;
+    for(let i=dates.length-1;i>=0;i--){
+      const d = dates[i];
+      if(d > t) continue;
+      const st = state.days[d] && state.days[d].status;
+      if(st==='ok') streak++;
+      else if(d===t && !st) continue;
+      else break;
+    }
+    const last = dates[dates.length-1];
+    let left = 0;
+    for(const d of dates) if(d >= t) left++;
+    if(t > last) left = 0;
+    return {ok, bad, best, streak, left};
+  }
+
+  // ---------- render ----------
+  const $ = id => document.getElementById(id);
+
+  function render(){
+    const dates = challengeDates(), t = todayIso(), s = stats();
+    const idx = dates.indexOf(t);
+    $('sub').textContent = idx>=0 ? `Ngày ${idx+1} / ${state.length}` :
+      (t < dates[0] ? `Bắt đầu ngày ${fmt(dates[0])}` : 'Thử thách đã kết thúc');
+    $('streak').textContent = s.streak;
+    $('sOk').textContent = s.ok; $('sBad').textContent = s.bad;
+    $('sBest').textContent = s.best; $('sLeft').textContent = s.left;
+    const C = 364.4;
+    $('ringArc').style.strokeDashoffset = C - C * Math.min(1, s.ok / state.length);
+
+    // today
+    const box = $('todayBox');
+    const rec = state.days[t] || {};
+    if(idx < 0){
+      box.innerHTML = '<p class="muted" style="margin:0">Hôm nay không nằm trong thời gian thử thách. Bạn vẫn có thể ghi chú bên dưới.</p>';
+    } else if(rec.status){
+      box.innerHTML = rec.status==='ok'
+        ? '<div class="done-msg ok">✓ Đã điểm danh: giữ vững hôm nay. Tuyệt!</div>'
+        : '<div class="done-msg bad">Hôm nay đã vấp ngã. Không sao — ngày mai bắt đầu lại.</div>';
+      const b = document.createElement('button'); b.className='ghost'; b.textContent='Sửa';
+      b.onclick = () => openDay(t); box.appendChild(b);
+    } else {
+      box.innerHTML = '<div class="checkin"><button class="btn-ok" id="okBtn">Tôi đã giữ vững hôm nay</button><button class="btn-bad" id="badBtn">Tôi đã vấp ngã</button></div>';
+      $('okBtn').onclick = () => setStatus(t,'ok');
+      $('badBtn').onclick = () => { if(confirm('Ghi nhận vấp ngã cho hôm nay?')) setStatus(t,'bad'); };
+    }
+    $('todayTitle').textContent = 'Hôm nay — ' + fmt(t);
+    if(document.activeElement !== $('note')) $('note').value = rec.note || '';
+    $('urge').value = rec.urge || 0; $('urgeVal').textContent = rec.urge || 0;
+
+    // calendar
+    const cal = $('cal'); cal.innerHTML = '';
+    const order = [1,2,3,4,5,6,0];
+    order.forEach(i => { const e=document.createElement('div'); e.className='dow'; e.textContent=DOW[i]; cal.appendChild(e); });
+    const firstDow = parse(dates[0]).getDay();
+    const offset = (firstDow + 6) % 7;
+    for(let i=0;i<offset;i++){ const e=document.createElement('div'); e.className='day blank'; cal.appendChild(e); }
+    dates.forEach(d => {
+      const r = state.days[d] || {};
+      const b = document.createElement('button');
+      b.className = 'day' + (r.status ? ' '+r.status : '') + (d > t ? ' future' : '') + (d===t ? ' today' : '');
+      b.innerHTML = parse(d).getDate() + (r.note ? '<span class="note-dot"></span>' : '');
+      b.setAttribute('aria-label', fmt(d) + (r.status==='ok'?' giữ vững':r.status==='bad'?' vấp ngã':''));
+      if(d > t) b.disabled = true; else b.onclick = () => openDay(d);
+      cal.appendChild(b);
+    });
+
+    // log
+    const log = $('log'); log.innerHTML='';
+    const entries = Object.keys(state.days).filter(d => state.days[d].note || state.days[d].status==='bad').sort().reverse();
+    if(!entries.length){ log.innerHTML = '<li class="muted">Chưa có ghi chú nào.</li>'; }
+    entries.forEach(d => {
+      const r = state.days[d]; const li = document.createElement('li');
+      const head = document.createElement('div'); head.className='d';
+      head.textContent = fmt(d) + (r.status==='ok'?' · giữ vững':r.status==='bad'?' · vấp ngã':'') + (r.urge?` · cám dỗ ${r.urge}/10`:'');
+      const body = document.createElement('div'); body.textContent = r.note || '—';
+      li.append(head, body); log.appendChild(li);
+    });
+
+    $('start').value = state.start; $('len').value = state.length;
+  }
+
+  function rec(d){ return state.days[d] || (state.days[d] = {}); }
+  function setStatus(d, st){
+    if(st) rec(d).status = st; else if(state.days[d]) delete state.days[d].status;
+    save(); render();
+  }
+
+  // ---------- day dialog ----------
+  const dayDlg = $('dayDlg'); let editing = null;
+  function openDay(d){ editing = d; $('dayDlgTitle').textContent = 'Ngày ' + fmt(d); dayDlg.showModal(); }
+  dayDlg.addEventListener('click', e => {
+    const a = e.target.dataset && e.target.dataset.set; if(!a) return;
+    if(a==='ok'||a==='bad') setStatus(editing, a);
+    if(a==='clear') setStatus(editing, null);
+    dayDlg.close();
+  });
+
+  // ---------- note & urge ----------
+  let timer;
+  $('note').addEventListener('input', e => {
+    rec(todayIso()).note = e.target.value;
+    clearTimeout(timer); timer = setTimeout(() => { save(); $('saved').textContent='Đã lưu'; render(); setTimeout(()=>$('saved').textContent='',1500); }, 500);
+  });
+  $('urge').addEventListener('input', e => {
+    const v = Number(e.target.value); rec(todayIso()).urge = v; $('urgeVal').textContent = v; save();
+  });
+
+  // ---------- settings ----------
+  $('start').addEventListener('change', e => { if(e.target.value){ state.start = e.target.value; save(); render(); } });
+  $('len').addEventListener('change', e => { const v = Math.max(1, Math.min(365, Number(e.target.value)||30)); state.length = v; save(); render(); });
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'nnn-backup-' + todayIso() + '.json'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  $('importBtn').onclick = () => $('importFile').click();
+  $('importFile').onchange = e => {
+    const f = e.target.files[0]; if(!f) return;
+    f.text().then(txt => {
+      try{ const data = JSON.parse(txt); if(!data.days) throw 0; state = Object.assign(defaultState(), data); save(); applyTheme(); render(); alert('Đã nhập dữ liệu.'); }
+      catch(err){ alert('File không hợp lệ.'); }
+    });
+    e.target.value='';
+  };
+  $('resetBtn').onclick = () => { if(confirm('Xoá toàn bộ dữ liệu? Không thể hoàn tác.')){ state = defaultState(); save(); render(); } };
+
+  // ---------- theme ----------
+  function applyTheme(){ if(state.theme) document.documentElement.dataset.theme = state.theme; else delete document.documentElement.dataset.theme; }
+  $('themeBtn').onclick = () => {
+    const dark = state.theme ? state.theme==='dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+    state.theme = dark ? 'light' : 'dark'; save(); applyTheme();
+  };
+
+  // ---------- SOS ----------
+  const sos = $('sos'); let bInt, tInt;
+  $('sosBtn').onclick = () => {
+    const tips = [...TIPS].sort(() => Math.random()-.5).slice(0,3);
+    $('tips').innerHTML = ''; tips.forEach(t => { const li=document.createElement('li'); li.textContent=t; $('tips').appendChild(li); });
+    sos.showModal();
+    const br = $('breath'); let inhale = true, left = 60;
+    const step = () => { br.classList.toggle('in', inhale); br.textContent = inhale ? 'Hít vào' : 'Thở ra'; inhale = !inhale; };
+    step(); bInt = setInterval(step, 4000);
+    $('breathTimer').textContent = left + 's';
+    tInt = setInterval(() => { left--; $('breathTimer').textContent = left > 0 ? left + 's' : 'Làm tốt lắm 💪'; if(left<=0){ clearInterval(tInt); clearInterval(bInt); br.classList.remove('in'); br.textContent='Xong'; } }, 1000);
+  };
+  function stopSos(){ clearInterval(bInt); clearInterval(tInt); $('breath').classList.remove('in'); }
+  $('sosClose').onclick = () => sos.close();
+  sos.addEventListener('close', stopSos);
+
+  $('quote').textContent = '“' + QUOTES[Math.floor(Math.random()*QUOTES.length)] + '”';
+  applyTheme(); render();
+  // refresh at midnight / when returning to tab
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) render(); });
+})();
+</script>
+</body>
+</html>
